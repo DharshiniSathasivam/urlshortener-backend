@@ -10,17 +10,17 @@ const User = require('./User');
 const Url  = require('./Url');
 
 const app = express();
-app.use(cors({ origin: process.env.FRONTEND_URL }));
+app.use(cors());
 app.use(express.json());
 
 
 
-// ── DB connect ──────────────────────────────────────
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error(err));
 
-// ── Email helper ────────────────────────────────────
+
 const sendEmail = async (to, subject, html) => {
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -30,7 +30,7 @@ const sendEmail = async (to, subject, html) => {
   await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, html });
 };
 
-// ── Auth middleware ──────────────────────────────────
+
 const protect = async (req, res, next) => {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer '))
@@ -45,11 +45,7 @@ const protect = async (req, res, next) => {
   }
 };
 
-// ════════════════════════════════════════════════════
-//  AUTH ROUTES
-// ════════════════════════════════════════════════════
 
-// REGISTER
 app.post('/api/register', async (req, res) => {
   try {
     const { firstName, lastName, email, password } = req.body;
@@ -72,7 +68,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// ACTIVATE
+
 app.get('/api/activate/:token', async (req, res) => {
   try {
     const user = await User.findOne({ activationToken: req.params.token });
@@ -87,7 +83,7 @@ app.get('/api/activate/:token', async (req, res) => {
   }
 });
 
-// LOGIN
+
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -106,7 +102,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// FORGOT PASSWORD
+
 app.post('/api/forgot-password', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
@@ -128,7 +124,7 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
-// RESET PASSWORD
+
 app.post('/api/reset-password/:token', async (req, res) => {
   try {
     const user = await User.findOne({
@@ -147,11 +143,7 @@ app.post('/api/reset-password/:token', async (req, res) => {
   }
 });
 
-// ════════════════════════════════════════════════════
-//  URL ROUTES
-// ════════════════════════════════════════════════════
 
-// CREATE SHORT URL
 app.post('/api/urls', protect, async (req, res) => {
   try {
     const { originalUrl, customAlias, title } = req.body;
@@ -171,7 +163,6 @@ app.post('/api/urls', protect, async (req, res) => {
   }
 });
 
-// GET MY URLS
 app.get('/api/urls', protect, async (req, res) => {
   try {
     const page  = parseInt(req.query.page) || 1;
@@ -189,7 +180,6 @@ app.get('/api/urls', protect, async (req, res) => {
   }
 });
 
-// DELETE URL
 app.delete('/api/urls/:id', protect, async (req, res) => {
   try {
     await Url.findOneAndDelete({ _id: req.params.id, user: req.user._id });
@@ -199,7 +189,7 @@ app.delete('/api/urls/:id', protect, async (req, res) => {
   }
 });
 
-// REDIRECT SHORT URL
+
 app.get('/r/:shortCode', async (req, res) => {
   try {
     const url = await Url.findOne({ shortCode: req.params.shortCode });
@@ -215,7 +205,6 @@ app.get('/r/:shortCode', async (req, res) => {
   }
 });
 
-// DASHBOARD STATS
 app.get('/api/stats', protect, async (req, res) => {
   try {
     const urls        = await Url.find({ user: req.user._id });
@@ -225,7 +214,6 @@ app.get('/api/stats', protect, async (req, res) => {
     const today = new Date(); today.setHours(0,0,0,0);
     const urlsToday = urls.filter(u => new Date(u.createdAt) >= today).length;
 
-    // clicks per day last 7 days
     const last7 = {};
     for (let i = 6; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
